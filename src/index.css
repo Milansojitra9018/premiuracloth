@@ -1,0 +1,97 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Theme Variables */
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-bg: var(--bg);
+  --color-ink: var(--ink);
+  --color-line: var(--line);
+  --color-muted: var(--muted);
+  --color-success: var(--success);
+  --color-accent: var(--accent);
+  --color-highlight: var(--highlight);
+  --color-danger: var(--danger);
+  --color-primary-dark: var(--primary-dark);
+  --color-surface: var(--surface);
+}
+
+/* Base Select Styles */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2378716C'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1.5rem center;
+  background-size: 1.25rem;
+}
+
+.dark select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23A8A29E'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+}
+
+select option {
+  @apply bg-bg text-ink;
+}
+
+:root {
+  --primary: #0F172A; 
+  --secondary: #92400E; 
+  --accent: #C08457;
+  --highlight: #EAB308; 
+  --bg: #FDFBF7; 
+  --surface: #F5F1EA; 
+  --ink: #1C1917;
+  --muted: #78716C;
+  --line: #0F172A14;
+  --success: #065F46; 
+  --danger: #7F1D1D;
+  --primary-dark: #0F172A; 
+}
+
+.dark {
+  --primary: #94A3B8; 
+  --secondary: #D97706; 
+  --accent: #FBBF24; 
+  --highlight: #F59E0B; 
+  --bg: #0C0A09; 
+  --surface: #1C1917; 
+  --ink: #F5F5F4;
+  --muted: #A8A29E;
+  --line: #FFFFFF14;
+  --success: #10B981;
+  --danger: #F87171;
+  --primary-dark: #0F172A;  
+}
+
+body {
+  @apply bg-bg text-ink transition-colors duration-300 antialiased;
+  font-family: var(--font-sans);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  @apply font-serif tracking-tight;
+}
+
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+.font-sans {
+  font-family: var(--font-sans);
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, var(--line) 25%, rgba(255, 255, 255, 0.1) 50%, var(--line) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite linear;
+}
