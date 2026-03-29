@@ -1,0 +1,7 @@
+{
+  "name": "Premiura",
+  "description": "A high-performance, secure e-commerce platform for premium clothing and bulk fabrics. Features multi-currency support, dynamic seasonal collections, and a hardened Firebase security architecture.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
