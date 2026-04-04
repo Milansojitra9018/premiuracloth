@@ -2,10 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import Link from "next/link";
 import { productService } from "@/src/services/productService";
+import { budgetSpotlightService } from "@/src/services/budgetSpotlightService";
 import { Hero } from "@/src/components/Hero";
 import { ProductCard } from "@/src/components/ProductCard";
 import { CategoryFilter } from "@/src/components/CategoryFilter";
-import { Product } from "@/src/types";
+import { Product, BudgetSpotlightItem } from "@/src/types";
 import { mockProducts } from "@/src/mockData";
 import { useCart } from "@/src/context/CartContext";
 import { motion, AnimatePresence } from 'motion/react';
@@ -20,13 +21,14 @@ export default function Home() {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [budgetSpotlights, setBudgetSpotlights] = useState<BudgetSpotlightItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const currentMonth = new Date().getMonth();
   const currentSeason = (currentMonth >= 3 && currentMonth <= 8) ? 'summer' : 'winter';
 
   useEffect(() => {
-    const unsubscribe = productService.subscribeToProducts((productList) => {
+    const unsubscribeProducts = productService.subscribeToProducts((productList) => {
       if (productList.length === 0) {
         setProducts(mockProducts);
         setFilteredProducts(mockProducts);
@@ -37,7 +39,15 @@ export default function Home() {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    // We fetch budget spotlights dynamically. Fallbacks are only used if the DB is empty.
+    const unsubscribeSpotlights = budgetSpotlightService.subscribeToBudgetSpotlights((spotlightsData) => {
+      setBudgetSpotlights(spotlightsData);
+    });
+
+    return () => {
+      unsubscribeProducts();
+      unsubscribeSpotlights();
+    };
   }, []);
 
   useEffect(() => {
@@ -188,22 +198,22 @@ export default function Home() {
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {[
-            { brand: "MAX", deal: `UNDER ${formatCurrency(499)}`, img: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=500" },
-            { brand: "DN MX", deal: `UNDER ${formatCurrency(799)}`, img: "https://images.unsplash.com/photo-1529139572764-798c7df2dd74?auto=format&fit=crop&q=80&w=500" },
-            { brand: "AVSAR", deal: "MIN. 50% OFF", img: "https://images.unsplash.com/photo-1554412933-514a83d2f3c8?auto=format&fit=crop&q=80&w=500" },
-            { brand: "POINT COVE", deal: `UNDER ${formatCurrency(599)}`, img: "https://images.unsplash.com/photo-1519234221762-4b135867c406?auto=format&fit=crop&q=80&w=500" },
-            { brand: "YOUSTA", deal: `UNDER ${formatCurrency(299)}`, img: "https://images.unsplash.com/photo-1516762689617-e1cffcef479d?auto=format&fit=crop&q=80&w=500" },
-            { brand: "LEE COOPER", deal: "30-70% OFF", img: "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=500" },
-            { brand: "HELLCAT", deal: "MIN. 70% OFF", img: "https://images.unsplash.com/photo-1503910368127-b4288eca296a?auto=format&fit=crop&q=80&w=500" },
-            { brand: "THREADS", deal: "MIN. 50% OFF", img: "https://images.unsplash.com/photo-1523381235312-3a16838b452c?auto=format&fit=crop&q=80&w=500" },
-            { brand: "TOONY PORT", deal: "MIN. 50% OFF", img: "https://images.unsplash.com/photo-1519452635265-7b1fbfd1e4e0?auto=format&fit=crop&q=80&w=500" },
-            { brand: "MOM'S LOVE", deal: `STARTING ${formatCurrency(119)}`, img: "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&q=80&w=500" },
-            { brand: "WOTROT", deal: `UNDER ${formatCurrency(699)}`, img: "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&q=80&w=500" },
-            { brand: "PUMA", deal: "MIN. 40% OFF", img: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&q=80&w=500" },
-          ].map((item, i) => (
+          {(budgetSpotlights.length > 0 ? budgetSpotlights : [
+            { id: "mock-1", brand: "MAX", deal: `UNDER ${formatCurrency(499)}`, img: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=500" },
+            { id: "mock-2", brand: "DN MX", deal: `UNDER ${formatCurrency(799)}`, img: "https://images.unsplash.com/photo-1529139572764-798c7df2dd74?auto=format&fit=crop&q=80&w=500" },
+            { id: "mock-3", brand: "AVSAR", deal: "MIN. 50% OFF", img: "https://images.unsplash.com/photo-1554412933-514a83d2f3c8?auto=format&fit=crop&q=80&w=500" },
+            { id: "mock-4", brand: "POINT COVE", deal: `UNDER ${formatCurrency(599)}`, img: "https://images.unsplash.com/photo-1519234221762-4b135867c406?auto=format&fit=crop&q=80&w=500" },
+            { id: "mock-5", brand: "YOUSTA", deal: `UNDER ${formatCurrency(299)}`, img: "https://images.unsplash.com/photo-1516762689617-e1cffcef479d?auto=format&fit=crop&q=80&w=500" },
+            { id: "mock-6", brand: "LEE COOPER", deal: "30-70% OFF", img: "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=500" },
+            { id: "mock-7", brand: "HELLCAT", deal: "MIN. 70% OFF", img: "https://images.unsplash.com/photo-1503910368127-b4288eca296a?auto=format&fit=crop&q=80&w=500" },
+            { id: "mock-8", brand: "THREADS", deal: "MIN. 50% OFF", img: "https://images.unsplash.com/photo-1523381235312-3a16838b452c?auto=format&fit=crop&q=80&w=500" },
+            { id: "mock-9", brand: "TOONY PORT", deal: "MIN. 50% OFF", img: "https://images.unsplash.com/photo-1519452635265-7b1fbfd1e4e0?auto=format&fit=crop&q=80&w=500" },
+            { id: "mock-10", brand: "MOM'S LOVE", deal: `STARTING ${formatCurrency(119)}`, img: "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&q=80&w=500" },
+            { id: "mock-11", brand: "WOTROT", deal: `UNDER ${formatCurrency(699)}`, img: "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&q=80&w=500" },
+            { id: "mock-12", brand: "PUMA", deal: "MIN. 40% OFF", img: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&q=80&w=500" },
+          ]).map((item, i) => (
             <Link 
-              key={i} 
+              key={item.id || i} 
               href={`/products?q=${item.brand}`}
               className="group relative aspect-[3/4] overflow-hidden rounded-2xl bg-line"
             >
@@ -222,25 +232,38 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Twirl Into Summer Section */}
+      {/* Seasonal Twirl Section */}
       <section className="max-w-7xl mx-auto px-4 py-24 border-t border-line">
         <div className="text-center mb-16">
-          <h2 className="text-6xl font-serif font-bold tracking-tight uppercase italic">Twirl Into Summer</h2>
+          <h2 className="text-4xl md:text-6xl font-serif font-bold tracking-tight uppercase italic">
+            {currentSeason === 'summer' ? 'Twirl Into Summer' : 'Cozy Into Winter'}
+          </h2>
+          <p className="text-muted mt-4 text-sm font-bold uppercase tracking-widest text-center">
+            {currentSeason === 'summer' ? 'Sun-Kissed Styles' : 'Warm & Elegant'}
+          </p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            "https://images.unsplash.com/photo-1502033006978-cce1d72de57e?auto=format&fit=crop&q=80&w=800",
-            "https://images.unsplash.com/photo-1519234221762-4b135867c406?auto=format&fit=crop&q=80&w=800",
-            "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&q=80&w=800",
-            "https://images.unsplash.com/photo-1519452635265-7b1fbfd1e4e0?auto=format&fit=crop&q=80&w=800"
-          ].map((img, i) => (
-            <div key={i} className="aspect-[3/4] rounded-3xl overflow-hidden bg-line">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          {products
+            .filter(p => p.season === currentSeason || p.season === 'all')
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .slice(0, 6)
+            .map((product) => (
+            <Link 
+              href={`/${product.category === 'fabric' ? 'fabric' : product.gender || 'men'}/product/${product.id}`}
+              key={product.id} 
+              className="group aspect-[3/4] rounded-3xl overflow-hidden bg-line block relative"
+            >
               <Image 
-                src={img} 
-               
-                className="w-full h-full hover:scale-105 transition-transform duration-700"
+                src={product.images?.[0] || "https://images.unsplash.com/photo-1502033006978-cce1d72de57e?auto=format&fit=crop&q=80&w=800"} 
+                alt={product.name}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
               />
-            </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute bottom-0 left-0 w-full p-4 text-white translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                <p className="font-bold text-sm truncate">{product.name}</p>
+                <p className="text-[10px] uppercase tracking-widest opacity-80">{formatCurrency(getProductPrice(product))}</p>
+              </div>
+            </Link>
           ))}
         </div>
       </section>

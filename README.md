@@ -54,7 +54,7 @@ This project has been successfully migrated from Vite to Next.js (App Router).
 
 ## Firebase Database Schema
 
-To correctly run this project, your Firestore database requires **4 main collections**. Below is the exact schema, including what you have correctly defined and the **missing or incorrect fields** you need to adjust to match the frontend application (`src/types.ts`).
+To correctly run this project, your Firestore database requires **6 main collections**. Below is the exact schema, including what you have correctly defined and the **missing or incorrect fields** you need to adjust to match the frontend application (`src/types.ts`).
 
 ### 1. `products` Collection
 **Missing/Required adjustments:** You must add `category`, `subcategory`, `rating` (number), and `reviewsCount` (number) otherwise the app will break or fail to filter correctly.
@@ -118,3 +118,26 @@ To correctly run this project, your Firestore database requires **4 main collect
 - `rating` (number/int64) - **CORRECTION REQUIRED** (Change from string to number format, e.g., 5)
 - `comment` (string)
 - `createdAt` (string)
+
+### 5. `hero` Collection
+**Status:** Works with Admin Panel. Add items directly from `/admin`.
+
+- `image` (string url)
+- `tag` (string)
+- `title` (string)
+- `description` (string)
+- `primaryBtn` (map)
+  - `text` (string)
+  - `link` (string)
+- `secondaryBtn` (map)
+  - `text` (string)
+  - `link` (string)
+- `createdAt` (string/timestamp)
+
+### 6. `budgetSpotlight` Collection
+**Status:** Designed to configure "Budget Spotlight" / "Exclusive Deals" items dynamically via `/admin`.
+
+- `brand` (string)
+- `deal` (string) e.g., "UNDER 499"
+- `img` (string url)
+- `createdAt` (string/timestamp)

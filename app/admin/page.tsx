@@ -29,7 +29,10 @@ import { Image } from "@/src/components/common/Image";
 import { productService } from "@/src/services/productService";
 import { orderService } from "@/src/services/orderService";
 import { userService } from "@/src/services/userService";
+import { heroService } from "@/src/services/heroService";
+import { budgetSpotlightService } from "@/src/services/budgetSpotlightService";
 import { formatCurrency, getProductPrice, formatDate } from "@/src/utils";
+import { HeroSlide, BudgetSpotlightItem } from "@/src/types";
 import { ConfirmationModal } from "@/src/components/common/ConfirmationModal";
 import { 
   AreaChart, 
@@ -47,18 +50,38 @@ export default function AdminDashboard() {
   const [products, setProducts] = React.useState<any[]>([]);
   const [users, setUsers] = React.useState<any[]>([]);
   const [orders, setOrders] = React.useState<any[]>([]);
+  const [heroSlides, setHeroSlides] = React.useState<HeroSlide[]>([]);
+  const [budgetSpotlights, setBudgetSpotlights] = React.useState<BudgetSpotlightItem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [editingProduct, setEditingProduct] = React.useState<any>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState<'products' | 'users' | 'orders' | 'settings'>('products');
+  const [activeTab, setActiveTab] = React.useState<'products' | 'users' | 'orders' | 'settings' | 'hero' | 'budgetSpotlight'>('products');
   const [categoryFilter, setCategoryFilter] = React.useState<string>('all');
   const [roleFilter, setRoleFilter] = React.useState<string>('all');
   const [statusFilter, setStatusFilter] = React.useState<string>('all');
   const [isFilterMenuOpen, setIsFilterMenuOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [productToDelete, setProductToDelete] = React.useState<string | null>(null);
+
+  // Hero Form State
+  const [isHeroModalOpen, setIsHeroModalOpen] = React.useState(false);
+  const [editingHeroSlide, setEditingHeroSlide] = React.useState<HeroSlide | null>(null);
+  const [heroToDelete, setHeroToDelete] = React.useState<string | null>(null);
+  const [isHeroDeleteModalOpen, setIsHeroDeleteModalOpen] = React.useState(false);
+  const [heroFormData, setHeroFormData] = React.useState({
+    image: '', tag: '', title: '', description: '',
+    primaryBtnText: '', primaryBtnLink: '',
+    secondaryBtnText: '', secondaryBtnLink: ''
+  });
+
+  // Spotlight Form State
+  const [isSpotlightModalOpen, setIsSpotlightModalOpen] = React.useState(false);
+  const [editingSpotlight, setEditingSpotlight] = React.useState<BudgetSpotlightItem | null>(null);
+  const [spotlightToDelete, setSpotlightToDelete] = React.useState<string | null>(null);
+  const [isSpotlightDeleteModalOpen, setIsSpotlightDeleteModalOpen] = React.useState(false);
+  const [spotlightFormData, setSpotlightFormData] = React.useState({ brand: '', deal: '', img: '' });
 
   // Form State
   const [formData, setFormData] = React.useState<any>({
@@ -126,14 +149,18 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [productsData, usersData, ordersData] = await Promise.all([
+      const [productsData, usersData, ordersData, heroData, spotlightData] = await Promise.all([
         productService.getAllProducts(),
         userService.getAllUsers(),
-        orderService.getAllOrders()
+        orderService.getAllOrders(),
+        heroService.getAllHeroSlides(),
+        budgetSpotlightService.getAllBudgetSpotlights()
       ]);
       setProducts(productsData);
       setUsers(usersData);
       setOrders(ordersData);
+      setHeroSlides(heroData);
+      setBudgetSpotlights(spotlightData);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       toast.error('Failed to load dashboard data');
@@ -256,6 +283,134 @@ export default function AdminDashboard() {
     setIsModalOpen(true);
   };
 
+  const handleHeroSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    const payload = {
+      image: heroFormData.image,
+      tag: heroFormData.tag,
+      title: heroFormData.title,
+      description: heroFormData.description,
+      primaryBtn: { text: heroFormData.primaryBtnText, link: heroFormData.primaryBtnLink },
+      secondaryBtn: { text: heroFormData.secondaryBtnText, link: heroFormData.secondaryBtnLink },
+      createdAt: editingHeroSlide ? editingHeroSlide.createdAt : new Date().toISOString()
+    };
+
+    try {
+      if (editingHeroSlide) {
+        await heroService.updateHeroSlide(editingHeroSlide.id, payload);
+        toast.success('Hero slide updated');
+      } else {
+        await heroService.createHeroSlide(payload);
+        toast.success('Hero slide created');
+      }
+      setIsHeroModalOpen(false);
+      setEditingHeroSlide(null);
+      setHeroFormData({
+        image: '', tag: '', title: '', description: '',
+        primaryBtnText: '', primaryBtnLink: '',
+        secondaryBtnText: '', secondaryBtnLink: ''
+      });
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to save hero slide');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openHeroEditModal = (slide: HeroSlide) => {
+    setEditingHeroSlide(slide);
+    setHeroFormData({
+      image: slide.image || '',
+      tag: slide.tag || '',
+      title: slide.title || '',
+      description: slide.description || '',
+      primaryBtnText: slide.primaryBtn?.text || '',
+      primaryBtnLink: slide.primaryBtn?.link || '',
+      secondaryBtnText: slide.secondaryBtn?.text || '',
+      secondaryBtnLink: slide.secondaryBtn?.link || ''
+    });
+    setIsHeroModalOpen(true);
+  };
+
+  const handleDeleteHero = (id: string) => {
+    setHeroToDelete(id);
+    setIsHeroDeleteModalOpen(true);
+  };
+
+  const confirmHeroDelete = async () => {
+    if (!heroToDelete) return;
+    try {
+      await heroService.deleteHeroSlide(heroToDelete);
+      toast.success('Hero slide deleted');
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to delete hero slide');
+    } finally {
+      setIsHeroDeleteModalOpen(false);
+      setHeroToDelete(null);
+    }
+  };
+
+  const handleSpotlightSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    const payload = {
+      brand: spotlightFormData.brand,
+      deal: spotlightFormData.deal,
+      img: spotlightFormData.img,
+      createdAt: editingSpotlight ? editingSpotlight.createdAt : new Date().toISOString()
+    };
+
+    try {
+      if (editingSpotlight) {
+        await budgetSpotlightService.updateBudgetSpotlight(editingSpotlight.id, payload);
+        toast.success('Spotlight item updated');
+      } else {
+        await budgetSpotlightService.createBudgetSpotlight(payload);
+        toast.success('Spotlight item created');
+      }
+      setIsSpotlightModalOpen(false);
+      setEditingSpotlight(null);
+      setSpotlightFormData({ brand: '', deal: '', img: '' });
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to save spotlight item');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openSpotlightEditModal = (item: BudgetSpotlightItem) => {
+    setEditingSpotlight(item);
+    setSpotlightFormData({
+      brand: item.brand,
+      deal: item.deal,
+      img: item.img
+    });
+    setIsSpotlightModalOpen(true);
+  };
+
+  const handleDeleteSpotlight = (id: string) => {
+    setSpotlightToDelete(id);
+    setIsSpotlightDeleteModalOpen(true);
+  };
+
+  const confirmSpotlightDelete = async () => {
+    if (!spotlightToDelete) return;
+    try {
+      await budgetSpotlightService.deleteBudgetSpotlight(spotlightToDelete);
+      toast.success('Spotlight item deleted');
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to delete spotlight item');
+    } finally {
+      setIsSpotlightDeleteModalOpen(false);
+      setSpotlightToDelete(null);
+    }
+  };
+
   const filteredProducts = products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -345,6 +500,32 @@ export default function AdminDashboard() {
             >
               <Plus className="w-4 h-4 mr-2" />
               Add Product
+            </button>
+            <button 
+              onClick={() => { 
+                setEditingHeroSlide(null); 
+                setHeroFormData({
+                  image: '', tag: '', title: '', description: '',
+                  primaryBtnText: '', primaryBtnLink: '',
+                  secondaryBtnText: '', secondaryBtnLink: ''
+                });
+                setIsHeroModalOpen(true); 
+              }}
+              className="bg-secondary text-white px-6 py-3 rounded-2xl text-sm font-bold hover:opacity-90 transition-all flex items-center shadow-lg active:scale-95"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Hero Slide
+            </button>
+            <button 
+              onClick={() => { 
+                setEditingSpotlight(null); 
+                setSpotlightFormData({ brand: '', deal: '', img: '' });
+                setIsSpotlightModalOpen(true); 
+              }}
+              className="bg-primary/10 text-primary px-6 py-3 rounded-2xl text-sm font-bold hover:bg-primary/20 transition-all flex items-center shadow-lg active:scale-95"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Spotlight
             </button>
             <button className="bg-bg border border-line text-ink px-4 py-3 rounded-2xl text-sm font-bold hover:bg-ink/5 transition-all flex items-center shadow-sm">
               <TrendingUp className="w-4 h-4 mr-2" />
@@ -438,9 +619,11 @@ export default function AdminDashboard() {
           <div className="bg-bg p-6 rounded-3xl border border-line shadow-sm">
             <h2 className="text-lg font-bold mb-6 text-ink">Quick Management</h2>
             <div className="space-y-4">
-               {[
+              {[
                 { label: 'Manage Users', icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10', tab: 'users' },
                 { label: 'System Settings', icon: Settings, color: 'text-muted', bg: 'bg-ink/5', tab: 'settings' },
+                { label: 'Manage Hero', icon: ImageIcon, color: 'text-pink-500', bg: 'bg-pink-500/10', tab: 'hero' },
+                { label: 'Spotlights', icon: Plus, color: 'text-indigo-500', bg: 'bg-indigo-500/10', tab: 'budgetSpotlight' },
                 { label: 'Review Products', icon: ShoppingBag, color: 'text-purple-500', bg: 'bg-purple-500/10', tab: 'products' },
                 { label: 'View Reports', icon: BarChart3, color: 'text-emerald-500', bg: 'bg-emerald-500/10', tab: 'orders' },
               ].map((action, i) => (
@@ -481,6 +664,18 @@ export default function AdminDashboard() {
                 className={`text-sm font-bold uppercase tracking-widest pb-2 border-b-2 transition-all ${activeTab === 'orders' ? 'border-ink text-ink' : 'border-transparent text-muted'}`}
               >
                 Orders
+              </button>
+              <button 
+                onClick={() => setActiveTab('hero')}
+                className={`text-sm font-bold uppercase tracking-widest pb-2 border-b-2 transition-all ${activeTab === 'hero' ? 'border-ink text-ink' : 'border-transparent text-muted'}`}
+              >
+                Hero Form
+              </button>
+              <button 
+                onClick={() => setActiveTab('budgetSpotlight')}
+                className={`text-sm font-bold uppercase tracking-widest pb-2 border-b-2 transition-all ${activeTab === 'budgetSpotlight' ? 'border-ink text-ink' : 'border-transparent text-muted'}`}
+              >
+                Spotlights
               </button>
               <button 
                 onClick={() => setActiveTab('settings')}
@@ -777,6 +972,103 @@ export default function AdminDashboard() {
                 </div>
               </div>
             )}
+
+            {activeTab === 'hero' && (
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-ink/5">
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-muted">Slide Image</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-muted">Title / Tag</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-muted">Buttons</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-muted text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {heroSlides.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-12 text-center text-muted italic">No hero slides found. The default mock slides will be shown.</td>
+                    </tr>
+                  ) : heroSlides.map((slide) => (
+                    <tr key={slide.id} className="hover:bg-ink/5 transition-colors">
+                      <td className="px-6 py-4">
+                        <img src={slide.image} alt="" className="w-24 h-12 object-cover rounded-md shadow-sm border border-line" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="font-bold text-sm text-ink">{slide.title}</p>
+                        <p className="text-xs text-muted mt-1">{slide.tag}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col space-y-1">
+                          {slide.primaryBtn?.text && <span className="text-[10px] font-bold uppercase tracking-widest text-secondary">{slide.primaryBtn.text}</span>}
+                          {slide.secondaryBtn?.text && <span className="text-[10px] font-bold uppercase tracking-widest text-muted">{slide.secondaryBtn.text}</span>}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end space-x-2">
+                          <button 
+                            onClick={() => openHeroEditModal(slide)}
+                            className="p-2 hover:bg-ink/10 text-muted hover:text-ink rounded-lg transition-colors"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteHero(slide.id)}
+                            className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            {activeTab === 'budgetSpotlight' && (
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-ink/5">
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-muted">Image</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-muted">Brand & Deal</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-muted text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {budgetSpotlights.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="px-6 py-12 text-center text-muted italic">No budget spotlights found. Add some to display them on the homepage.</td>
+                    </tr>
+                  ) : budgetSpotlights.map((item) => (
+                    <tr key={item.id} className="hover:bg-ink/5 transition-colors">
+                      <td className="px-6 py-4">
+                        <img src={item.img} alt={item.brand} className="w-16 h-16 object-cover rounded-md shadow-sm border border-line" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="font-bold text-sm text-ink">{item.brand}</p>
+                        <p className="text-xs text-secondary font-bold mt-1 uppercase">{item.deal}</p>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end space-x-2">
+                          <button 
+                            onClick={() => openSpotlightEditModal(item)}
+                            className="p-2 hover:bg-ink/10 text-muted hover:text-ink rounded-lg transition-colors"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteSpotlight(item.id)}
+                            className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
 
@@ -1051,6 +1343,156 @@ export default function AdminDashboard() {
           cancelText="Keep Product"
           isDanger={true}
         />
+
+        <ConfirmationModal 
+          isOpen={isHeroDeleteModalOpen}
+          onClose={() => setIsHeroDeleteModalOpen(false)}
+          onConfirm={confirmHeroDelete}
+          title="Delete Hero Slide"
+          message="Are you sure you want to delete this hero slide?"
+          confirmText="Yes, Delete"
+          cancelText="Keep Slide"
+          isDanger={true}
+        />
+
+        <ConfirmationModal 
+          isOpen={isSpotlightDeleteModalOpen}
+          onClose={() => setIsSpotlightDeleteModalOpen(false)}
+          onConfirm={confirmSpotlightDelete}
+          title="Delete Spotlight Item"
+          message="Are you sure you want to delete this budget spotlight item?"
+          confirmText="Yes, Delete"
+          cancelText="Keep Item"
+          isDanger={true}
+        />
+
+        {/* Hero Modal */}
+        <AnimatePresence>
+          {isHeroModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => !isSubmitting && setIsHeroModalOpen(false)}
+                className="absolute inset-0 bg-black/80 backdrop-blur-md"
+              />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9, y: 40 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 40 }}
+                className="relative bg-bg w-full max-w-3xl rounded-[40px] shadow-2xl overflow-hidden border border-line"
+              >
+                <div className="p-8 border-b border-line flex justify-between items-center bg-ink/5">
+                  <div>
+                    <h2 className="text-2xl font-bold text-ink">{editingHeroSlide ? 'Edit Hero Slide' : 'New Hero Slide'}</h2>
+                    <p className="text-sm text-muted">Update your homepage hero section dynamically.</p>
+                  </div>
+                  <button 
+                    onClick={() => setIsHeroModalOpen(false)} 
+                    disabled={isSubmitting}
+                    className="p-3 hover:bg-bg rounded-full transition-all border border-transparent hover:border-line text-ink"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+                <form onSubmit={handleHeroSubmit} className="p-10 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted ml-1">Image URL</label>
+                    <input required type="url" value={heroFormData.image} onChange={e => setHeroFormData({...heroFormData, image: e.target.value})} className="w-full px-6 py-4 bg-ink/5 border-none rounded-2xl focus:ring-2 focus:ring-ink" placeholder="https://..." />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted ml-1">Tagline</label>
+                    <input required type="text" value={heroFormData.tag} onChange={e => setHeroFormData({...heroFormData, tag: e.target.value})} className="w-full px-6 py-4 bg-ink/5 border-none rounded-2xl focus:ring-2 focus:ring-ink" placeholder="e.g. New Collection 2026" />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted ml-1">Title</label>
+                    <input required type="text" value={heroFormData.title} onChange={e => setHeroFormData({...heroFormData, title: e.target.value})} className="w-full px-6 py-4 bg-ink/5 border-none rounded-2xl focus:ring-2 focus:ring-ink" placeholder="e.g. ELEVATE YOUR STYLE" />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted ml-1">Description</label>
+                    <textarea required value={heroFormData.description} onChange={e => setHeroFormData({...heroFormData, description: e.target.value})} className="w-full px-6 py-4 bg-ink/5 border-none rounded-2xl focus:ring-2 focus:ring-ink h-24 resize-none" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-muted ml-1">Primary Button Text</label>
+                      <input required type="text" value={heroFormData.primaryBtnText} onChange={e => setHeroFormData({...heroFormData, primaryBtnText: e.target.value})} className="w-full px-6 py-4 bg-ink/5 border-none rounded-2xl focus:ring-2 focus:ring-ink" />
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-muted ml-1">Primary Button Link</label>
+                      <input required type="text" value={heroFormData.primaryBtnLink} onChange={e => setHeroFormData({...heroFormData, primaryBtnLink: e.target.value})} className="w-full px-6 py-4 bg-ink/5 border-none rounded-2xl focus:ring-2 focus:ring-ink" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-muted ml-1">Secondary Button Text</label>
+                      <input required type="text" value={heroFormData.secondaryBtnText} onChange={e => setHeroFormData({...heroFormData, secondaryBtnText: e.target.value})} className="w-full px-6 py-4 bg-ink/5 border-none rounded-2xl focus:ring-2 focus:ring-ink" />
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-muted ml-1">Secondary Button Link</label>
+                      <input required type="text" value={heroFormData.secondaryBtnLink} onChange={e => setHeroFormData({...heroFormData, secondaryBtnLink: e.target.value})} className="w-full px-6 py-4 bg-ink/5 border-none rounded-2xl focus:ring-2 focus:ring-ink" />
+                    </div>
+                  </div>
+                  <button type="submit" disabled={isSubmitting} className="w-full bg-ink text-bg py-5 rounded-[24px] font-bold">
+                    {isSubmitting ? 'Saving...' : 'Save Hero Slide'}
+                  </button>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Spotlight Modal */}
+        <AnimatePresence>
+          {isSpotlightModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => !isSubmitting && setIsSpotlightModalOpen(false)}
+                className="absolute inset-0 bg-black/80 backdrop-blur-md"
+              />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9, y: 40 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 40 }}
+                className="relative bg-bg w-full max-w-lg rounded-[40px] shadow-2xl overflow-hidden border border-line"
+              >
+                <div className="p-8 border-b border-line flex justify-between items-center bg-ink/5">
+                  <div>
+                    <h2 className="text-2xl font-bold text-ink">{editingSpotlight ? 'Edit Spotlight Item' : 'New Spotlight Item'}</h2>
+                    <p className="text-sm text-muted">Update budget spotlight display.</p>
+                  </div>
+                  <button 
+                    onClick={() => setIsSpotlightModalOpen(false)} 
+                    disabled={isSubmitting}
+                    className="p-3 hover:bg-bg rounded-full transition-all border border-transparent hover:border-line text-ink"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+                <form onSubmit={handleSpotlightSubmit} className="p-8 space-y-6">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted ml-1">Brand Name</label>
+                    <input required type="text" value={spotlightFormData.brand} onChange={e => setSpotlightFormData({...spotlightFormData, brand: e.target.value})} className="w-full px-6 py-4 bg-ink/5 border-none rounded-2xl focus:ring-2 focus:ring-ink" placeholder="e.g. MAX" />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted ml-1">Deal Details</label>
+                    <input required type="text" value={spotlightFormData.deal} onChange={e => setSpotlightFormData({...spotlightFormData, deal: e.target.value})} className="w-full px-6 py-4 bg-ink/5 border-none rounded-2xl focus:ring-2 focus:ring-ink" placeholder="e.g. UNDER ₹499" />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted ml-1">Image URL</label>
+                    <input required type="url" value={spotlightFormData.img} onChange={e => setSpotlightFormData({...spotlightFormData, img: e.target.value})} className="w-full px-6 py-4 bg-ink/5 border-none rounded-2xl focus:ring-2 focus:ring-ink" placeholder="https://..." />
+                  </div>
+                  <button type="submit" disabled={isSubmitting} className="w-full bg-ink text-bg py-5 rounded-[24px] font-bold mt-4">
+                    {isSubmitting ? 'Saving...' : 'Save Spotlight Item'}
+                  </button>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

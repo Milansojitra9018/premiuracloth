@@ -17,7 +17,7 @@ interface NavbarProps {
 }
 
 export function Navbar({ cartCount, onCartClick, onSearch }) {
-  const { user, profile } = useAuth();
+  const { user, profile, loading } = useAuth();
   const { favoriteCount } = useFavorites();
   const { theme, toggleTheme } = useTheme();
   const navigate = useRouter();
@@ -116,7 +116,9 @@ export function Navbar({ cartCount, onCartClick, onSearch }) {
               )}
             </button>
             
-            {user ? (
+            {loading ? (
+              <div className="w-8 h-8 rounded-full border border-line animate-pulse bg-ink/10" />
+            ) : user ? (
               <div className="flex items-center space-x-4">
                 <Link href="/profile" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
                   <Image 
@@ -206,7 +208,9 @@ export function Navbar({ cartCount, onCartClick, onSearch }) {
                 <Link href="/fabric" className="text-left text-ink/70 font-medium" onClick={() => setIsMenuOpen(false)}>Shop Fabric</Link>
                 <Link href="/profile" className="text-left text-ink/70 font-medium" onClick={() => setIsMenuOpen(false)}>My Profile</Link>
                 <Link href="/faq" className="text-left text-ink/70 font-medium" onClick={() => setIsMenuOpen(false)}>FAQs</Link>
-                {user ? (
+                {loading ? (
+                  <div className="h-6 w-24 bg-ink/10 animate-pulse rounded" />
+                ) : user ? (
                   <button onClick={() => { handleLogout(); setIsMenuOpen(false); }} className="text-left text-secondary font-medium">Logout</button>
                 ) : (
                   <button onClick={() => { handleLogin(); setIsMenuOpen(false); }} className="text-left text-primary font-medium">Login with Google</button>

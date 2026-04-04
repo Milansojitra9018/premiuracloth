@@ -5,9 +5,12 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowRight, ShoppingBag, Ruler, ChevronUp, ChevronDown } from 'lucide-react';
 import { Image } from './common/Image';
 
-const HERO_SLIDES = [
+import { HeroSlide } from '../types';
+import { heroService } from '../services/heroService';
+
+const MOCK_HERO_SLIDES = [
   {
-    id: 1,
+    id: '1',
     image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=1920",
     tag: "New Collection 2026",
     title: "ELEVATE YOUR STYLE QUOTIENT",
@@ -16,7 +19,7 @@ const HERO_SLIDES = [
     secondaryBtn: { text: "Bulk Fabric", link: "/fabric" }
   },
   {
-    id: 2,
+    id: '2',
     image: "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?auto=format&fit=crop&q=80&w=1920",
     tag: "Summer Essentials",
     title: "VIBRANT TEXTURES & PATTERNS",
@@ -25,7 +28,7 @@ const HERO_SLIDES = [
     secondaryBtn: { text: "View Fabrics", link: "/fabric" }
   },
   {
-    id: 3,
+    id: '3',
     image: "https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&q=80&w=1920",
     tag: "Artisan Quality",
     title: "THE ART OF FINE TAILORING",
@@ -36,16 +39,32 @@ const HERO_SLIDES = [
 ];
 
 export function Hero() {
+  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>(MOCK_HERO_SLIDES as HeroSlide[]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0); // 1 for down, -1 for up
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const unsubscribe = heroService.subscribeToHeroSlides((slides) => {
+      if (slides.length > 0) {
+        setHeroSlides(slides);
+        setCurrentIndex(0); // Reset index when new slides come in to avoid out-of-bounds
+      } else {
+        setHeroSlides(MOCK_HERO_SLIDES as HeroSlide[]);
+      }
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (heroSlides.length === 0) return;
     const timer = setInterval(() => {
       setDirection(1);
-      setCurrentIndex((prev) => (prev + 1) % HERO_SLIDES.length);
+      setCurrentIndex((prev) => (prev + 1) % heroSlides.length);
     }, 6000);
     return () => clearInterval(timer);
-  }, []);
+  }, [heroSlides.length]);
 
   const slideVariants = {
     initial: (direction: number) => ({
@@ -70,7 +89,11 @@ export function Hero() {
     })
   };
 
-  const currentSlide = HERO_SLIDES[currentIndex];
+  const currentSlide = heroSlides[currentIndex];
+
+  if (loading || !currentSlide) {
+    return <div className="relative h-[calc(100vh-220px)] min-h-[680px] overflow-hidden bg-primary-dark animate-pulse" />;
+  }
 
   return (
     <div className="relative h-[calc(100vh-220px)] min-h-[680px] overflow-hidden bg-primary-dark">
@@ -135,7 +158,7 @@ export function Hero() {
 
       {/* Navigation Controls - Right Side */}
       <div className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 flex flex-col space-y-4 z-20">
-        {HERO_SLIDES.map((_, i) => (
+        {heroSlides.map((_, i) => (
           <button
             key={i}
             onClick={() => {

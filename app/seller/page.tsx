@@ -89,12 +89,12 @@ export default function SellerDashboard() {
       
       // Filter orders that contain this seller's products
       const sellerOrders = allOrders.filter((order: any) => 
-        order.items.some((item: any) => productsData.some(p => p.id === item.productId))
+        Array.isArray(order.items) && order.items.some((item: any) => productsData.some(p => p.id === item.productId))
       );
       setOrders(sellerOrders);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching seller data:', error);
-      toast.error('Failed to load dashboard data');
+      toast.error(`Failed to load dashboard data: ${error.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -227,7 +227,8 @@ export default function SellerDashboard() {
   });
 
   const sellerRevenue = orders.reduce((acc, order) => {
-    const sellerItems = order.items.filter((item: any) => products.some(p => p.id === item.productId));
+    const items = Array.isArray(order.items) ? order.items : [];
+    const sellerItems = items.filter((item: any) => products.some(p => p.id === item.productId));
     const sellerAmount = sellerItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
     return acc + sellerAmount;
   }, 0);
@@ -251,7 +252,8 @@ export default function SellerDashboard() {
       const m = d.getMonth();
       const chartPoint = last6Months.find(p => p.monthIndex === m);
       if (chartPoint) {
-        const sellerItems = order.items.filter((item: any) => products.some(p => p.id === item.productId));
+        const items = Array.isArray(order.items) ? order.items : [];
+        const sellerItems = items.filter((item: any) => products.some(p => p.id === item.productId));
         chartPoint.sales += sellerItems.reduce((sum: number, item: any) => sum + item.quantity, 0);
       }
     });
@@ -586,7 +588,8 @@ export default function SellerDashboard() {
                         <td colSpan={5} className="px-6 py-12 text-center text-muted italic">No orders found for your products</td>
                       </tr>
                     ) : filteredOrders.map((order) => {
-                      const sellerItems = order.items.filter((item: any) => products.some(p => p.id === item.productId));
+                      const items = Array.isArray(order.items) ? order.items : [];
+                      const sellerItems = items.filter((item: any) => products.some(p => p.id === item.productId));
                       const sellerAmount = sellerItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
                       
                       return (
