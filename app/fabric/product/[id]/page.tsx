@@ -1,5 +1,5 @@
-import { useParams } from "next/navigation";
 "use client";
+import { useParams } from "next/navigation";
 import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from "next/navigation";
 import { doc, getDoc } from 'firebase/firestore';
